@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}New ticket{% endblock %}
+{% block content %}
+<h1>Submit a ticket</h1>
+<p class="muted">Tell us what's going on and our support team will get back to you.</p>
+
+<form method="post" action="{{ url_for('new_ticket') }}" class="ticket-form" id="ticket-form" novalidate>
+  <div class="field {% if errors.customer_name %}has-error{% endif %}">
+    <label for="customer_name">Your name</label>
+    <input type="text" id="customer_name" name="customer_name"
+           value="{{ values.customer_name or '' }}" maxlength="{{ config.NAME_MAX }}" required
+           {% if errors.customer_name %}aria-invalid="true" aria-describedby="err-name"{% endif %}>
+    {% if errors.customer_name %}<p class="error" id="err-name">{{ errors.customer_name }}</p>{% endif %}
+  </div>
+
+  <div class="field {% if errors.customer_email %}has-error{% endif %}">
+    <label for="customer_email">Email</label>
+    <input type="email" id="customer_email" name="customer_email"
+           value="{{ values.customer_email or '' }}" required
+           {% if errors.customer_email %}aria-invalid="true" aria-describedby="err-email"{% endif %}>
+    {% if errors.customer_email %}<p class="error" id="err-email">{{ errors.customer_email }}</p>{% endif %}
+  </div>
+
+  <div class="field {% if errors.subject %}has-error{% endif %}">
+    <label for="subject">Subject</label>
+    <input type="text" id="subject" name="subject"
+           value="{{ values.subject or '' }}" maxlength="{{ config.SUBJECT_MAX }}" required
+           {% if errors.subject %}aria-invalid="true" aria-describedby="err-subject"{% endif %}>
+    <p class="hint">Up to {{ config.SUBJECT_MAX }} characters.</p>
+    {% if errors.subject %}<p class="error" id="err-subject">{{ errors.subject }}</p>{% endif %}
+  </div>
+
+  <div class="field {% if errors.description %}has-error{% endif %}">
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="7"
+              maxlength="{{ config.DESCRIPTION_MAX }}" required
+              {% if errors.description %}aria-invalid="true" aria-describedby="err-description"{% endif %}>{{ values.description or '' }}</textarea>
+    <p class="hint">{{ config.DESCRIPTION_MIN }} to {{ config.DESCRIPTION_MAX }} characters.</p>
+    {% if errors.description %}<p class="error" id="err-description">{{ errors.description }}</p>{% endif %}
+  </div>
+
+  <button type="submit" class="button" id="submit-btn">Submit ticket</button>
+</form>
+
+<script>
+  // Loading state: disable the button while the server works (AI triage from Wednesday).
+  document.getElementById("ticket-form").addEventListener("submit", function () {
+    var btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Analyzing ticket…";
+  });
+</script>
+{% endblock %}

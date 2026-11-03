@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Tickets{% endblock %} · Ledgerleaf Support</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{{ url_for('ticket_list') }}" class="brand">Ledgerleaf Support</a>
+      <nav>
+        <a href="{{ url_for('ticket_list') }}">Tickets</a>
+        <a href="{{ url_for('new_ticket') }}" class="button button-small">New ticket</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <p class="flash" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
