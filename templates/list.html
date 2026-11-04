@@ -3,6 +3,59 @@
 {% block content %}
 <h1>Tickets</h1>
 
+<section class="summary-strip" aria-label="Open tickets by priority">
+  {% for p in config.PRIORITIES %}
+    <a class="summary-item" href="{{ url_for('ticket_list', status='Open', priority=p) }}">
+      <span class="badge badge-{{ p | lower }}">{{ p }}</span>
+      <span class="summary-count">{{ open_counts[p] }}</span>
+      <span class="muted">open</span>
+    </a>
+  {% endfor %}
+</section>
+
+<form method="get" action="{{ url_for('ticket_list') }}" class="filters">
+  <div class="filter">
+    <label for="f-status">Status</label>
+    <select id="f-status" name="status">
+      <option value="">All</option>
+      {% for s in config.STATUSES %}
+        <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter">
+    <label for="f-priority">Priority</label>
+    <select id="f-priority" name="priority">
+      <option value="">All</option>
+      {% for p in config.PRIORITIES %}
+        <option value="{{ p }}" {% if filters.priority == p %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter">
+    <label for="f-category">Category</label>
+    <select id="f-category" name="category">
+      <option value="">All</option>
+      {% for c in config.CATEGORIES %}
+        <option value="{{ c }}" {% if filters.category == c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter">
+    <label for="f-sort">Sort by</label>
+    <select id="f-sort" name="sort">
+      <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+      <option value="priority" {% if sort == 'priority' %}selected{% endif %}>Priority</option>
+    </select>
+  </div>
+  <div class="filter-actions">
+    <button type="submit" class="button">Apply</button>
+    {% if any_filter or sort == 'priority' %}
+      <a href="{{ url_for('ticket_list') }}">Clear filters</a>
+    {% endif %}
+  </div>
+</form>
+
 {% if tickets %}
 <div class="table-wrap">
   <table class="ticket-table">
@@ -20,7 +73,9 @@
       {% for t in tickets %}
       <tr>
         <td data-label="ID">#{{ t.id }}</td>
-        <td data-label="Subject" class="subject">{{ t.subject }}</td>
+        <td data-label="Subject" class="subject">
+          <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.subject }}</a>
+        </td>
         <td data-label="Category">{{ t.category or "Not triaged" }}</td>
         <td data-label="Priority">
           {% if t.priority %}
@@ -35,6 +90,11 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+{% elif any_filter %}
+<div class="empty-state">
+  <p>No tickets match these filters.</p>
+  <a href="{{ url_for('ticket_list') }}" class="button">Clear filters</a>
 </div>
 {% else %}
 <div class="empty-state">

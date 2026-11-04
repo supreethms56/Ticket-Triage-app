@@ -1,12 +1,10 @@
-"""Load the 20 sample tickets. Running it twice adds no duplicates.
-
-Tuesday version: loads and saves tickets only.
-Wednesday: call triage.service.triage() on each new ticket.
-"""
+"""Load the 20 sample tickets and triage each one. Running it twice adds no duplicates."""
 import json
+import logging
 
 import config
 import db
+from triage.service import triage
 
 
 def seed() -> tuple[int, int]:
@@ -19,17 +17,22 @@ def seed() -> tuple[int, int]:
         if db.ticket_exists(t["customer_email"], t["subject"], t["created_at"]):
             skipped += 1
             continue
-        db.create_ticket(
+        ticket_id = db.create_ticket(
             customer_name=t["customer_name"],
             customer_email=t["customer_email"],
             subject=t["subject"],
             description=t["description"],
             created_at=t["created_at"],  # keep the original IST time
         )
+        result = triage(t["subject"], t["description"], t["customer_name"])
+        db.save_triage(ticket_id, result)
+        print(f"#{ticket_id:<3} {result['triage_source']:<5} {result['category']:<16} "
+              f"{result['priority']:<7} {t['subject']}")
         added += 1
     return added, skipped
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     added, skipped = seed()
     print(f"Added {added} tickets, skipped {skipped} already in the database.")

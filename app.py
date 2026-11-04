@@ -1,17 +1,25 @@
-"""Flask app and routes. Routes stay thin: they call db.py (and triage/ from Wednesday)."""
+"""Flask app and routes. Routes stay thin: they call db.py and triage/service.py."""
+import logging
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 
 import config
 import db
-from validation import validate_ticket_form
+from triage.service import triage
+from validation import validate_ticket_form, validate_ticket_update
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
 db.init_db()
+
+
+@app.context_processor
+def inject_config():
+    return {"config": config}
 
 
 @app.template_filter("age")
@@ -32,30 +40,97 @@ def age_filter(created_at: str) -> str:
     return f"{seconds // 86400} d ago"
 
 
+@app.template_filter("nicetime")
+def nicetime_filter(value: str) -> str:
+    """'2026-11-02T09:15:00' -> '2 Nov 2026, 09:15'."""
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return ""
+    return f"{dt.day} {dt:%b %Y, %H:%M}"
+
+
+def _allowed(value: str | None, allowed: list[str]) -> str | None:
+    """Ignore filter values that are not in the config lists."""
+    return value if value in allowed else None
+
+
+def _triage_and_save(ticket: dict) -> dict:
+    result = triage(ticket["subject"], ticket["description"], ticket["customer_name"])
+    db.save_triage(ticket["id"], result)
+    return result
+
+
 @app.route("/")
 def ticket_list():
-    tickets = db.list_tickets()
-    return render_template("list.html", tickets=tickets)
+    filters = {
+        "status": _allowed(request.args.get("status"), config.STATUSES),
+        "priority": _allowed(request.args.get("priority"), config.PRIORITIES),
+        "category": _allowed(request.args.get("category"), config.CATEGORIES),
+    }
+    sort = "priority" if request.args.get("sort") == "priority" else "newest"
+    tickets = db.list_tickets(**filters, sort=sort)
+    return render_template(
+        "list.html",
+        tickets=tickets,
+        filters=filters,
+        sort=sort,
+        any_filter=any(filters.values()),
+        open_counts=db.count_open_by_priority(),
+    )
 
 
 @app.route("/tickets/new", methods=["GET", "POST"])
 def new_ticket():
     if request.method == "GET":
-        return render_template("new.html", values={}, errors={}, config=config)
+        return render_template("new.html", values={}, errors={})
 
     values, errors = validate_ticket_form(request.form)
     if errors:
-        return render_template("new.html", values=values, errors=errors, config=config), 400
+        return render_template("new.html", values=values, errors=errors), 400
 
     ticket_id = db.create_ticket(**values)
-    # Wednesday: triage the ticket here via triage.service.triage()
-    flash(f"Ticket #{ticket_id} submitted.")
-    return redirect(url_for("ticket_list"))
+    _triage_and_save(db.get_ticket(ticket_id))
+    flash(f"Ticket #{ticket_id} submitted and triaged.")
+    return redirect(url_for("ticket_detail", ticket_id=ticket_id))
+
+
+@app.route("/tickets/<int:ticket_id>", methods=["GET", "POST"])
+def ticket_detail(ticket_id):
+    ticket = db.get_ticket(ticket_id)
+    if ticket is None:
+        abort(404)
+
+    if request.method == "POST":
+        values, errors = validate_ticket_update(request.form)
+        if errors:
+            return render_template("detail.html", ticket={**ticket, **values}, errors=errors), 400
+        db.update_ticket(ticket_id, **values)
+        flash("Ticket updated.")
+        return redirect(url_for("ticket_detail", ticket_id=ticket_id))
+
+    return render_template("detail.html", ticket=ticket, errors={})
+
+
+@app.route("/tickets/<int:ticket_id>/retriage", methods=["POST"])
+def retriage(ticket_id):
+    ticket = db.get_ticket(ticket_id)
+    if ticket is None:
+        abort(404)
+    result = _triage_and_save(ticket)
+    source = "the AI" if result["triage_source"] == "ai" else "keyword rules (AI unavailable)"
+    flash(f"Triage re-run using {source}.")
+    return redirect(url_for("ticket_detail", ticket_id=ticket_id))
 
 
 @app.errorhandler(404)
 def not_found(_error):
     return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(_error):
+    return render_template("500.html"), 500
 
 
 if __name__ == "__main__":

@@ -57,19 +57,60 @@ def create_ticket(customer_name, customer_email, subject, description,
         return cur.lastrowid
 
 
+def save_triage(ticket_id: int, result: dict, db_path=None) -> None:
+    """Store a triage result. Sets both the current and the original (ai_) category and priority."""
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """UPDATE tickets
+               SET category = ?, priority = ?, ai_category = ?, ai_priority = ?,
+                   summary = ?, suggested_reply = ?, triage_source = ?, updated_at = ?
+               WHERE id = ?""",
+            (result["category"], result["priority"], result["category"], result["priority"],
+             result["summary"], result["suggested_reply"], result["triage_source"],
+             now_ist(), ticket_id),
+        )
+
+
 def get_ticket(ticket_id: int, db_path=None):
     with get_connection(db_path) as conn:
         row = conn.execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
         return dict(row) if row else None
 
 
-def list_tickets(db_path=None) -> list[dict]:
-    """All tickets, newest first."""
+def list_tickets(status=None, priority=None, category=None, sort=None, db_path=None) -> list[dict]:
+    """Tickets, newest first, or highest priority first when sort == 'priority'.
+    Filter values must already be checked against config lists by the caller."""
+    # Fixed SQL: an empty filter (NULL) matches every row.
+    sql = """SELECT * FROM tickets
+             WHERE (? IS NULL OR status = ?)
+               AND (? IS NULL OR priority = ?)
+               AND (? IS NULL OR category = ?)
+             ORDER BY created_at DESC, id DESC"""
+    status, priority, category = status or None, priority or None, category or None
+    params = (status, status, priority, priority, category, category)
+
+    with get_connection(db_path) as conn:
+        tickets = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    if sort == "priority":
+        # Stable sort keeps newest-first inside each priority. Untriaged tickets go last.
+        rank = {name: i for i, name in enumerate(config.PRIORITIES)}
+        tickets.sort(key=lambda t: rank.get(t["priority"], len(rank)))
+    return tickets
+
+
+def count_open_by_priority(db_path=None) -> dict:
+    """{'Urgent': 3, 'High': 1, ...} for open tickets."""
+    counts = {p: 0 for p in config.PRIORITIES}
     with get_connection(db_path) as conn:
         rows = conn.execute(
-            "SELECT * FROM tickets ORDER BY created_at DESC, id DESC"
+            "SELECT priority, COUNT(*) AS n FROM tickets WHERE status = ? GROUP BY priority",
+            (config.DEFAULT_STATUS,),
         ).fetchall()
-        return [dict(r) for r in rows]
+    for r in rows:
+        if r["priority"] in counts:
+            counts[r["priority"]] = r["n"]
+    return counts
 
 
 def ticket_exists(customer_email, subject, created_at, db_path=None) -> bool:
@@ -81,6 +122,18 @@ def ticket_exists(customer_email, subject, created_at, db_path=None) -> bool:
             (customer_email, subject, created_at),
         ).fetchone()
         return row is not None
+
+
+def update_ticket(ticket_id: int, status: str, category: str, priority: str,
+                  suggested_reply: str, db_path=None) -> None:
+    """An agent's edit. Never touches ai_category or ai_priority."""
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """UPDATE tickets
+               SET status = ?, category = ?, priority = ?, suggested_reply = ?, updated_at = ?
+               WHERE id = ?""",
+            (status, category, priority, suggested_reply, now_ist(), ticket_id),
+        )
 
 
 def update_status(ticket_id: int, status: str, db_path=None) -> None:

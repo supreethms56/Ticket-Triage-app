@@ -43,3 +43,25 @@ def validate_ticket_form(form) -> tuple[dict, dict]:
         )
 
     return values, errors
+
+
+def validate_ticket_update(form) -> tuple[dict, dict]:
+    """Check an agent's edit on the detail page."""
+    values = {
+        "status": (form.get("status") or "").strip(),
+        "category": (form.get("category") or "").strip(),
+        "priority": (form.get("priority") or "").strip(),
+        "suggested_reply": (form.get("suggested_reply") or "").strip(),
+    }
+    errors = {}
+    if values["status"] not in config.STATUSES:
+        errors["status"] = "Please choose a status from the list."
+    if values["category"] not in config.CATEGORIES:
+        errors["category"] = "Please choose a category from the list."
+    if values["priority"] not in config.PRIORITIES:
+        errors["priority"] = "Please choose a priority from the list."
+    if not values["suggested_reply"]:
+        errors["suggested_reply"] = "The reply cannot be empty."
+    elif len(values["suggested_reply"]) > config.REPLY_MAX_CHARS:
+        errors["suggested_reply"] = f"The reply must be {config.REPLY_MAX_CHARS} characters or fewer."
+    return values, errors

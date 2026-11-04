@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}
+<div class="empty-state">
+  <h1>Something went wrong</h1>
+  <p>Sorry, we couldn't finish that. Please try again in a moment.</p>
+  <a href="{{ url_for('ticket_list') }}" class="button">Back to all tickets</a>
+</div>
+{% endblock %}
