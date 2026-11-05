@@ -63,9 +63,30 @@ CATEGORY_KEYWORDS = {
                         "roadmap", "dark mode"],
 }
 
-URGENT_KEYWORDS = ["urgent", "charged twice", "two times", "locked", "deleted", "lost"]
-HIGH_KEYWORDS = ["error", "failed", "not working", "cannot", "can't", "wrong amount"]
+# Priority follows the brief's guide. Words describe IMPACT, not tone: a customer
+# writing "urgent" is not evidence of urgency on its own, so it is not in these lists.
+#
+# Urgent: money is at risk or the customer is fully blocked (double charge, locked out, data lost)
+URGENT_KEYWORDS = [
+    "charged twice", "two times", "double charge", "charged double", "duplicate charge",
+    "wrong amount", "locked", "locked out", "can't log in", "cannot log in",
+    "unable to log in", "can't login", "cannot login", "can't sign in", "cannot sign in",
+    "deleted", "lost", "data loss",
+]
+# High: a core feature is broken and there is no workaround
+HIGH_KEYWORDS = [
+    "error", "failed", "fails", "not working", "cannot", "can't", "not printing",
+    "not sending", "crash", "crashes",
+]
+# Low: questions, feature requests, feedback and anything else
 LOW_CATEGORIES = ["Feature request", "Other"]
+QUESTION_KEYWORDS = [
+    "how do i", "how can i", "how to", "is there a way", "can i", "will my", "do you offer",
+    "where can i", "where do i", "can you add", "is it possible", "is it on your roadmap",
+]
+# A "broken" ticket this short says too little to know if a core feature is down: Medium.
+VAGUE_MAX_WORDS = 8
+# Medium: everything else (something is wrong but the customer can still work)
 
 # Short fixed reply per category, used when the AI is not available.
 # "Hi," is replaced with "Hi <first name>," in code.

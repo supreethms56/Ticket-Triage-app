@@ -86,6 +86,12 @@ def triage(subject: str, description: str, customer_name: str | None = None) -> 
         log.debug("Raw AI reply: %s", raw)
         result = parse_ai_reply(raw)
         result["triage_source"] = "ai"
+        # Guard: a small model can under-rate a ticket where money is at risk or the
+        # customer is locked out. Those clear signals always mean Urgent.
+        if result["priority"] != "Urgent" and rules.has_urgent_signal(f"{subject}\n{description}"):
+            log.info("Raised AI priority %s to Urgent (money/blocked/data-loss signal)",
+                     result["priority"])
+            result["priority"] = "Urgent"
     except Exception as exc:  # any AI or checking problem -> keyword rules
         log.warning("AI triage failed, using rules: %s", exc)
         result = rules.triage_with_rules(subject, description)

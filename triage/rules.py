@@ -20,13 +20,23 @@ def pick_category(text: str) -> str:
     return best
 
 
-def pick_priority(text: str, category: str) -> str:
+def has_urgent_signal(text: str) -> bool:
+    """Money at risk, locked out or data lost. Also used to guard the AI's priority."""
     text = text.lower()
-    if any(_contains(text, kw) for kw in config.URGENT_KEYWORDS):
+    return any(_contains(text, kw) for kw in config.URGENT_KEYWORDS)
+
+
+def pick_priority(text: str, category: str, description: str = "") -> str:
+    """Apply the priority guide, from most to least serious."""
+    lowered = text.lower()
+    if has_urgent_signal(lowered):
         return "Urgent"
-    if any(_contains(text, kw) for kw in config.HIGH_KEYWORDS):
-        return "High"
+    if any(_contains(lowered, kw) for kw in config.HIGH_KEYWORDS):
+        too_vague = len(description.split()) <= config.VAGUE_MAX_WORDS
+        return "Medium" if too_vague else "High"
     if category in config.LOW_CATEGORIES:
+        return "Low"
+    if any(_contains(lowered, kw) for kw in config.QUESTION_KEYWORDS):
         return "Low"
     return "Medium"
 
@@ -43,7 +53,7 @@ def triage_with_rules(subject: str, description: str) -> dict:
     category = pick_category(text)
     return {
         "category": category,
-        "priority": pick_priority(text, category),
+                "priority": pick_priority(text, category, description),
         "summary": make_summary(subject),
         "suggested_reply": config.FALLBACK_REPLIES[category],
     }

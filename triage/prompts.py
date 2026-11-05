@@ -22,10 +22,22 @@ category: exactly one of: {_categories}
 - Other: how-to questions, thanks, feedback, spam, marketing, or anything vague
 
 priority: exactly one of: {_priorities}
-- Urgent: money is at risk or the customer is fully blocked (a double charge, a wrong payment amount, locked out, data lost or deleted)
-- High: a core feature is broken and there is no workaround
-- Medium: something is wrong but the customer can still work
-- Low: questions, feature requests, feedback, thanks, spam and anything else
+Decide priority by the IMPACT on the customer, never by their tone. Words like "urgent",
+"ASAP" or angry language do not raise the priority on their own.
+- Urgent: money is at risk or the customer is fully blocked (a double charge, a wrong payment amount, locked out, cannot log in, data lost or deleted)
+- High: a core feature is broken and there is no workaround (cannot send, export or print invoices; error on a main action)
+- Medium: something is wrong but the customer can still work (slow pages, a small display problem, a vague report with no details)
+- Low: questions, how-to, feature requests, feedback, thanks, spam and anything else
+
+Examples:
+- "My card was charged three times for the monthly plan" -> Billing, Urgent
+- "Reset password email never arrives, I can't get into my account" -> Account, Urgent
+- "Every invoice download shows a blank page" -> Technical, High
+- "The reports page takes 20 seconds to open" -> Technical, Medium
+- "Can I pay yearly instead of monthly?" -> Billing, Low
+- "How do I add my logo to invoices?" -> Other, Low
+- "Please add WhatsApp sharing for invoices" -> Feature request, Low
+- "URGENT!!! where is the export button??" -> Other, Low
 
 summary: one sentence of {config.SUMMARY_MAX_WORDS} words or fewer describing the customer's issue.
 
