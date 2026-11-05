@@ -26,6 +26,19 @@ def _canonical(value: str, allowed: list[str]) -> str | None:
     return None
 
 
+def promises_refund(reply: str) -> bool:
+    """True if any sentence says a refund is approved, coming, or will happen."""
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", reply):
+        s = sentence.lower()
+        if not re.search(config.REFUND_WORDS, s):
+            continue
+        if re.search(config.REFUND_STRONG_WORDS, s):
+            return True
+        if re.search(config.REFUND_WEAK_WORDS, s) and not re.search(config.REFUND_REVIEW_WORDS, s):
+            return True
+    return False
+
+
 def parse_ai_reply(raw: str) -> dict:
     """Turn the model's raw text into a checked triage dict, or raise InvalidTriage."""
     text = (raw or "").strip()
@@ -61,6 +74,8 @@ def parse_ai_reply(raw: str) -> dict:
     for pattern in config.FORBIDDEN_REPLY_PATTERNS:
         if re.search(pattern, reply, re.IGNORECASE):
             raise InvalidTriage(f"Reply makes a promise (matched {pattern!r})")
+        if promises_refund(reply):
+            raise InvalidTriage("Reply promises a refund")
 
     return {"category": category, "priority": priority,
             "summary": summary, "suggested_reply": reply}

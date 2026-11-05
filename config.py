@@ -50,6 +50,14 @@ FORBIDDEN_REPLY_PATTERNS = [
     r"\bwithin \d+\s*(minutes?|hours?|days?|weeks?)\b",
 ]
 
+# Refund promises are checked sentence by sentence. A sentence about a refund or money
+# back is rejected if it says the refund is approved/processed (always), or uses
+# will/has been/get (unless it only says the team will review or look into it).
+REFUND_WORDS = r"\b(refund\w*|reimburs\w*|credited back|credit back|money back|amount back|get (your|the) [^.!?]{0,30}\bback)\b"
+REFUND_STRONG_WORDS = (r"\b(approved?|processed|processing|initiated|issued|credited|confirmed|"
+                       r"granted|reversed|on its way|reach your)\b")
+REFUND_WEAK_WORDS = r"(\bwill\b|'ll\b|\bis being\b|\bhas been\b|\bhave been\b|\bget\b|\breceive\b|\bshortly\b|\bsoon\b)"
+REFUND_REVIEW_WORDS = r"\b(review\w*|look into|looking into|check\w*|investigat\w*|assess\w*|team will get back)\b"
 # --- Fallback keyword rules (matched on subject + description, ignoring case) ---
 # Order matters on a tie: the category listed first wins.
 CATEGORY_KEYWORDS = {
