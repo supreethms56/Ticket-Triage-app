@@ -54,6 +54,28 @@ def _allowed(value: str | None, allowed: list[str]) -> str | None:
     """Ignore filter values that are not in the config lists."""
     return value if value in allowed else None
 
+def _same_text(a: str | None, b: str | None) -> bool:
+    """Compare replies ignoring line-ending and edge whitespace differences (browsers send \r\n)."""
+    def norm(text):
+        return (text or "").replace("\r\n", "\n").strip()
+    return norm(a) == norm(b)
+
+
+def agent_changes(ticket: dict) -> list[str]:
+    """What an agent changed after triage, as short lines for the page. Empty if nothing.
+    Re-running triage would replace all of these."""
+    changes = []
+    if ticket.get("ai_category") and ticket["category"] != ticket["ai_category"]:
+        changes.append(f"Category: triage said {ticket['ai_category']}, "
+                       f"an agent changed it to {ticket['category']}")
+    if ticket.get("ai_priority") and ticket["priority"] != ticket["ai_priority"]:
+        changes.append(f"Priority: triage said {ticket['ai_priority']}, "
+                       f"an agent changed it to {ticket['priority']}")
+    # ai_reply is empty for tickets triaged before it was stored, so their reply can't be checked.
+    if ticket.get("ai_reply") and not _same_text(ticket["suggested_reply"], ticket["ai_reply"]):
+        changes.append("Reply to customer: an agent edited the drafted reply")
+    return changes
+
 
 def _triage_and_save(ticket: dict) -> dict:
     result = triage(ticket["subject"], ticket["description"], ticket["customer_name"])
@@ -145,12 +167,13 @@ def ticket_detail(ticket_id):
     if request.method == "POST":
         values, errors = validate_ticket_update(request.form)
         if errors:
-            return render_template("detail.html", ticket={**ticket, **values}, errors=errors), 400
+            return render_template("detail.html", ticket={**ticket, **values}, errors=errors,
+                                   changes=agent_changes(ticket)), 400
         db.update_ticket(ticket_id, **values)
         flash("Ticket updated.")
         return redirect(url_for("ticket_detail", ticket_id=ticket_id))
 
-    return render_template("detail.html", ticket=ticket, errors={})
+    return render_template("detail.html", ticket=ticket, errors={}, changes=agent_changes(ticket))
 
 
 @app.route("/tickets/<int:ticket_id>/retriage", methods=["POST"])
@@ -158,6 +181,13 @@ def retriage(ticket_id):
     ticket = db.get_ticket(ticket_id)
     if ticket is None:
         abort(404)
+
+    # An agent's edits would be replaced. Ask first, unless they already said yes.
+    changes = agent_changes(ticket)
+    if changes and request.form.get("confirm") != "yes":
+        return render_template("detail.html", ticket=ticket, errors={}, changes=changes,
+                               confirm_retriage=True)
+
     result = _triage_and_save(ticket)
     source = "the AI" if result["triage_source"] == "ai" else "keyword rules (AI unavailable)"
     flash(f"Triage re-run using {source}.")

@@ -146,7 +146,7 @@ FALLBACK_REPLIES = {
 # --- AI settings ---
 AI_BASE_URL = os.getenv("AI_BASE_URL", "http://localhost:1234/v1")
 AI_MODEL = os.getenv("AI_MODEL", "")
-AI_TIMEOUT_SECONDS = 30
+AI_TIMEOUT_SECONDS = 60
 # Set to "false" in .env if your LM Studio version rejects response_format.
 AI_USE_JSON_SCHEMA = os.getenv("AI_USE_JSON_SCHEMA", "true").lower() == "true"
 

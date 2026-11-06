@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     ai_priority     TEXT,
     summary         TEXT,
     suggested_reply TEXT,
+    ai_reply        TEXT,
     triage_source   TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
@@ -39,6 +40,12 @@ def get_connection(db_path: str | None = None) -> sqlite3.Connection:
 def init_db(db_path: str | None = None) -> None:
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA)
+        # Databases made before ai_reply existed: add the column and fill it with each
+        # ticket's current reply, so reply edits from now on can be noticed.
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(tickets)")}
+        if "ai_reply" not in columns:
+            conn.execute("ALTER TABLE tickets ADD COLUMN ai_reply TEXT")
+            conn.execute("UPDATE tickets SET ai_reply = suggested_reply")
 
 
 def create_ticket(customer_name, customer_email, subject, description,
@@ -58,16 +65,18 @@ def create_ticket(customer_name, customer_email, subject, description,
 
 
 def save_triage(ticket_id: int, result: dict, db_path=None) -> None:
-    """Store a triage result. Sets both the current and the original (ai_) category and priority."""
+    """Store a triage result. Sets both the current values and the originals (ai_ columns),
+    so an agent's later edits can be told apart from what triage suggested."""
     with get_connection(db_path) as conn:
         conn.execute(
             """UPDATE tickets
                SET category = ?, priority = ?, ai_category = ?, ai_priority = ?,
-                   summary = ?, suggested_reply = ?, triage_source = ?, updated_at = ?
+                   summary = ?, suggested_reply = ?, ai_reply = ?, triage_source = ?,
+                   updated_at = ?
                WHERE id = ?""",
             (result["category"], result["priority"], result["category"], result["priority"],
-             result["summary"], result["suggested_reply"], result["triage_source"],
-             now_ist(), ticket_id),
+             result["summary"], result["suggested_reply"], result["suggested_reply"],
+             result["triage_source"], now_ist(), ticket_id),
         )
 
 

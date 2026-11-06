@@ -337,3 +337,21 @@ h2 { font-size: 18px; margin: 0 0 var(--space-3); }
 /* A row that just arrived from an upload */
 .ticket-table tr { transition: background-color 1.5s ease; }
 .ticket-table tr.row-new { background: #eff6ff; }
+
+
+
+/* Warning before Re-run triage replaces an agent's edits */
+.warning-box {
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #b45309;
+  background: #fffbeb;
+  border-radius: 4px;
+  padding: var(--space-3);
+}
+.warning-box:focus { outline: 2px solid #b45309; outline-offset: 2px; }
+.warning-box p { margin: 0 0 var(--space-2); }
+.warning-box ul { margin: 0 0 var(--space-3); padding-left: var(--space-4); }
+.warning-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.warning-actions form { margin: 0; }
+.button-danger { background: #b45309; }
+.button-danger:hover { background: #92400e; }
