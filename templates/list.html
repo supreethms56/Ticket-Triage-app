@@ -7,7 +7,7 @@
   {% for p in config.PRIORITIES %}
     <a class="summary-item" href="{{ url_for('ticket_list', status='Open', priority=p) }}">
       <span class="badge badge-{{ p | lower }}">{{ p }}</span>
-      <span class="summary-count">{{ open_counts[p] }}</span>
+      <span class="summary-count" data-priority="{{ p }}">{{ open_counts[p] }}</span>
       <span class="muted">open</span>
     </a>
   {% endfor %}
@@ -56,8 +56,31 @@
   </div>
 </form>
 
-{% if tickets %}
-<div class="table-wrap">
+<section class="import-panel" aria-labelledby="import-heading"
+         data-max-tickets="{{ config.IMPORT_MAX_TICKETS }}"
+         data-max-bytes="{{ config.IMPORT_MAX_FILE_BYTES }}"
+         data-import-url="{{ url_for('import_ticket') }}"
+         data-sort="{{ sort }}"
+         data-status="{{ filters.status or '' }}"
+         data-priority="{{ filters.priority or '' }}"
+         data-category="{{ filters.category or '' }}">
+  <h2 id="import-heading">Upload tickets</h2>
+  <label class="drop-zone" id="drop-zone" for="import-file">
+    <span class="drop-zone-title">Drag a JSON file here, or <span class="link-like">choose a file</span></span>
+    <span class="hint">Same format as sample_tickets.json: a list of tickets with customer_name,
+      customer_email, subject, description and an optional created_at.
+      Up to {{ config.IMPORT_MAX_TICKETS }} tickets. Tickets already in the list are skipped.</span>
+    <input type="file" id="import-file" accept=".json,application/json" class="visually-hidden">
+  </label>
+  <div id="import-status" class="import-status" role="status" aria-live="polite" hidden>
+    <p id="import-progress" class="import-progress"></p>
+    <progress id="import-bar" max="1" value="0"></progress>
+    <ul id="import-problems" class="import-problems"></ul>
+  </div>
+</section>
+
+{# The table is always on the page (hidden when empty) so uploaded rows have somewhere to go. #}
+<div class="table-wrap" id="ticket-table-wrap" {% if not tickets %}hidden{% endif %}>
   <table class="ticket-table">
     <thead>
       <tr>
@@ -69,37 +92,26 @@
         <th scope="col">Age</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="ticket-rows">
       {% for t in tickets %}
-      <tr>
-        <td data-label="ID">#{{ t.id }}</td>
-        <td data-label="Subject" class="subject">
-          <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.subject }}</a>
-        </td>
-        <td data-label="Category">{{ t.category or "Not triaged" }}</td>
-        <td data-label="Priority">
-          {% if t.priority %}
-            <span class="badge badge-{{ t.priority | lower }}">{{ t.priority }}</span>
-          {% else %}
-            <span class="muted">Not triaged</span>
-          {% endif %}
-        </td>
-        <td data-label="Status">{{ t.status }}</td>
-        <td data-label="Age"><time datetime="{{ t.created_at }}">{{ t.created_at | age }}</time></td>
-      </tr>
+        {% include "_ticket_row.html" %}
       {% endfor %}
     </tbody>
   </table>
 </div>
-{% elif any_filter %}
-<div class="empty-state">
-  <p>No tickets match these filters.</p>
-  <a href="{{ url_for('ticket_list') }}" class="button">Clear filters</a>
-</div>
-{% else %}
-<div class="empty-state">
-  <p>No tickets yet.</p>
-  <a href="{{ url_for('new_ticket') }}" class="button">Submit the first ticket</a>
-</div>
+{% if not tickets %}
+  {% if any_filter %}
+  <div class="empty-state" id="empty-state">
+    <p>No tickets match these filters.</p>
+    <a href="{{ url_for('ticket_list') }}" class="button">Clear filters</a>
+  </div>
+  {% else %}
+  <div class="empty-state" id="empty-state">
+    <p>No tickets yet. Upload a JSON file above, or submit one yourself.</p>
+    <a href="{{ url_for('new_ticket') }}" class="button">Submit the first ticket</a>
+  </div>
+  {% endif %}
 {% endif %}
+
+<script src="{{ url_for('static', filename='import.js') }}" defer></script>
 {% endblock %}

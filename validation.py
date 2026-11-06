@@ -1,5 +1,6 @@
-"""Checks for the new-ticket form."""
+"""Checks for the new-ticket form, agent updates and imported tickets."""
 import re
+from datetime import datetime
 
 import config
 
@@ -64,4 +65,39 @@ def validate_ticket_update(form) -> tuple[dict, dict]:
         errors["suggested_reply"] = "The reply cannot be empty."
     elif len(values["suggested_reply"]) > config.REPLY_MAX_CHARS:
         errors["suggested_reply"] = f"The reply must be {config.REPLY_MAX_CHARS} characters or fewer."
+    return values, errors
+
+
+
+
+IMPORT_FIELDS = ("customer_name", "customer_email", "subject", "description")
+
+
+def validate_import_ticket(item) -> tuple[dict, dict]:
+    """Check one ticket from an uploaded JSON file (same format as sample_tickets.json).
+
+    Uses the same rules as the new-ticket form. created_at is optional: if given it must be
+    an ISO date-time like '2026-11-02T09:15:00' (IST) and is kept, otherwise the ticket gets
+    the current time. Returns (cleaned values, errors)."""
+    if not isinstance(item, dict):
+        return {}, {"ticket": "Each ticket must be a JSON object with name, email, subject and description."}
+
+    # Only text values count; a number or list in a field is treated as missing.
+    form = {f: item[f] for f in IMPORT_FIELDS if isinstance(item.get(f), str)}
+    values, errors = validate_ticket_form(form)
+
+    created_at = item.get("created_at")
+    if created_at in (None, ""):
+        values["created_at"] = None
+    else:
+        try:
+            dt = datetime.fromisoformat(str(created_at).strip())
+        except ValueError:
+            dt = None
+        if dt is None:
+            errors["created_at"] = "created_at must be a date and time like 2026-11-02T09:15:00."
+        else:
+            if dt.tzinfo is not None:  # stored times are IST without an offset
+                dt = dt.astimezone(config.IST).replace(tzinfo=None)
+            values["created_at"] = dt.isoformat(timespec="seconds")
     return values, errors

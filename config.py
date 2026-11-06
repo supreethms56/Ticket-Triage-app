@@ -31,6 +31,10 @@ DESCRIPTION_MIN = 20
 DESCRIPTION_MAX = 2000
 REPLY_MAX_CHARS = 2000  # agent-edited reply
 
+# --- JSON import on the list page (same format as data/sample_tickets.json) ---
+IMPORT_MAX_TICKETS = 200
+IMPORT_MAX_FILE_BYTES = 1_000_000  # 1 MB
+
 # --- AI output limits ---
 SUMMARY_MAX_WORDS = 15
 REPLY_MAX_WORDS = 120

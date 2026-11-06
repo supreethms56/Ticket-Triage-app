@@ -1,0 +1,19 @@
+{# One row of the ticket table. Used by list.html and by the import endpoint.
+   The data- attributes let the upload script put a new row in the right sort position. #}
+<tr data-id="{{ t.id }}" data-created="{{ t.created_at }}"
+    data-rank="{{ config.PRIORITIES.index(t.priority) if t.priority in config.PRIORITIES else config.PRIORITIES | length }}">
+  <td data-label="ID">#{{ t.id }}</td>
+  <td data-label="Subject" class="subject">
+    <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.subject }}</a>
+  </td>
+  <td data-label="Category">{{ t.category or "Not triaged" }}</td>
+  <td data-label="Priority">
+    {% if t.priority %}
+      <span class="badge badge-{{ t.priority | lower }}">{{ t.priority }}</span>
+    {% else %}
+      <span class="muted">Not triaged</span>
+    {% endif %}
+  </td>
+  <td data-label="Status">{{ t.status }}</td>
+  <td data-label="Age"><time datetime="{{ t.created_at }}">{{ t.created_at | age }}</time></td>
+</tr>

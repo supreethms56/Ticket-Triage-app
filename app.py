@@ -2,12 +2,12 @@
 import logging
 from datetime import datetime
 
-from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
 import config
 import db
 from triage.service import triage
-from validation import validate_ticket_form, validate_ticket_update
+from validation import validate_import_ticket, validate_ticket_form, validate_ticket_update
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -76,6 +76,47 @@ def ticket_list():
         filters=filters,
         sort=sort,
         any_filter=any(filters.values()),
+        open_counts=db.count_open_by_priority(),
+    )
+
+
+@app.route("/tickets/import", methods=["POST"])
+def import_ticket():
+    """Save and triage ONE ticket from an uploaded JSON file.
+
+    The list page reads the file in the browser and posts the tickets here one at a time,
+    so each row can appear as soon as that ticket is triaged. The current list filters come
+    in the query string so the page knows whether to show the new row."""
+    item = request.get_json(silent=True)
+    values, errors = validate_import_ticket(item)
+    if errors:
+        # messages keeps the form's field order (Flask sorts the keys of errors).
+        return jsonify(result="invalid", errors=errors, messages=list(errors.values())), 400
+
+    created_at = values.pop("created_at")
+    if created_at and db.ticket_exists(values["customer_email"], values["subject"], created_at):
+        return jsonify(result="skipped", subject=values["subject"],
+                       message="Already in the database.")
+
+    ticket_id = db.create_ticket(**values, created_at=created_at)
+    _triage_and_save(db.get_ticket(ticket_id))
+    ticket = db.get_ticket(ticket_id)
+
+    filters = {
+        "status": _allowed(request.args.get("status"), config.STATUSES),
+        "priority": _allowed(request.args.get("priority"), config.PRIORITIES),
+        "category": _allowed(request.args.get("category"), config.CATEGORIES),
+    }
+    matches = all(not want or ticket[field] == want for field, want in filters.items())
+    return jsonify(
+        result="added",
+        id=ticket_id,
+        subject=ticket["subject"],
+        category=ticket["category"],
+        priority=ticket["priority"],
+        triage_source=ticket["triage_source"],
+        matches_filters=matches,
+        row_html=render_template("_ticket_row.html", t=ticket),
         open_counts=db.count_open_by_priority(),
     )
 

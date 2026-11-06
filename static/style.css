@@ -290,3 +290,50 @@ h2 { font-size: 18px; margin: 0 0 var(--space-3); }
   .filter select { width: 100%; }
   .card { padding: var(--space-3); }
 }
+
+
+
+/* Upload tickets (list page) */
+.import-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.import-panel h2 { font-size: 16px; margin: 0 0 var(--space-2); }
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+  text-align: center;
+  padding: var(--space-4) var(--space-3);
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.drop-zone:hover,
+.drop-zone:focus-within { border-color: var(--accent); }
+.drop-zone:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.drop-zone.is-dragover { border-color: var(--accent); background: #eff6ff; }
+.drop-zone.is-busy { cursor: wait; opacity: 0.6; }
+.drop-zone-title { font-weight: 600; }
+.link-like { color: var(--accent); text-decoration: underline; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.import-status { margin-top: var(--space-3); }
+.import-progress { margin: 0 0 var(--space-2); }
+.import-status progress { width: 100%; }
+.import-problems { margin: var(--space-2) 0 0; padding-left: var(--space-4); color: var(--error); font-size: 14px; }
+.import-problems:empty { display: none; }
+
+/* A row that just arrived from an upload */
+.ticket-table tr { transition: background-color 1.5s ease; }
+.ticket-table tr.row-new { background: #eff6ff; }
