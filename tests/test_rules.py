@@ -25,3 +25,26 @@ def test_charged_twice_is_billing_and_urgent():
 ])
 def test_priority_follows_the_guide(subject, description, expected):
     assert triage_with_rules(subject, description)["priority"] == expected
+
+
+    
+
+@pytest.mark.parametrize("subject, description, expected_priority", [
+    # Technical words ("error", "failed") must not pull a bank sync ticket into Technical
+    ("Bank sync failed", "Bank sync failed with an error and no transactions came in since Monday.", "High"),
+    # "bank account" contains the Account word "account", but this is about bank sync
+    ("Linking my bank", "How do I connect my bank account to Ledgerleaf for bank feeds?", "Low"),
+        ("Missing entries", "Bank transactions from last week are missing in the reconciliation screen.", "Medium"),
+    # A payment was made but still shows unpaid: Integrations, not Billing
+    ("Payment status", "I Paid the Money but the payment is still showing unpaid", "Medium"),
+])
+def test_bank_sync_is_integrations(subject, description, expected_priority):
+    result = triage_with_rules(subject, description)
+    assert result["category"] == "Integrations"
+    assert result["priority"] == expected_priority
+    assert "bank" in result["suggested_reply"]
+
+
+def test_bank_word_alone_does_not_mean_integrations():
+    result = triage_with_rules("Refund to my bank", "Please refund the extra charge to my bank.")
+    assert result["category"] == "Billing"

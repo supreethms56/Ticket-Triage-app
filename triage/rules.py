@@ -10,7 +10,21 @@ def _contains(text: str, keyword: str) -> bool:
     return re.search(pattern, text) is not None
 
 
+def decisive_category(text: str) -> str | None:
+    """The category of the first decisive phrase found (like "bank sync"), else None.
+    Also used to guard the AI's category."""
+    text = text.lower()
+    for category, keywords in config.DECISIVE_CATEGORY_KEYWORDS.items():
+        if any(_contains(text, kw) for kw in keywords):
+            return category
+    return None
+
+
 def pick_category(text: str) -> str:
+    # A decisive phrase wins outright, whatever else the ticket says.
+    decisive = decisive_category(text)
+    if decisive:
+        return decisive
     text = text.lower()
     best, best_hits = "Other", 0
     for category, keywords in config.CATEGORY_KEYWORDS.items():
@@ -53,7 +67,7 @@ def triage_with_rules(subject: str, description: str) -> dict:
     category = pick_category(text)
     return {
         "category": category,
-                "priority": pick_priority(text, category, description),
+        "priority": pick_priority(text, category, description),
         "summary": make_summary(subject),
-        "suggested_reply": config.FALLBACK_REPLIES[category],
+        "suggested_reply": config.FALLBACK_REPLIES.get(category, config.FALLBACK_REPLIES["Other"]),
     }

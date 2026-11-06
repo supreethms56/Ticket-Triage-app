@@ -18,7 +18,7 @@ SAMPLE_TICKETS_PATH = BASE_DIR / "data" / "sample_tickets.json"
 IST = timezone(timedelta(hours=5, minutes=30), "IST")
 
 # --- Ticket values ---
-CATEGORIES = ["Billing", "Technical", "Account", "Feature request", "Other"]
+CATEGORIES = ["Billing", "Technical", "Account", "Integrations", "Feature request", "Other"]
 PRIORITIES = ["Urgent", "High", "Medium", "Low"]  # highest first, used for sorting
 STATUSES = ["Open", "In progress", "Resolved"]
 DEFAULT_STATUS = "Open"
@@ -75,6 +75,18 @@ CATEGORY_KEYWORDS = {
                         "roadmap", "dark mode"],
 }
 
+
+# Bank sync phrases are specific, so ONE match decides the category on its own. Without this,
+# "Bank sync failed with an error" would score Technical 2 (error, failed) vs Integrations 1,
+# and "bank account" would count as an Account word.
+DECISIVE_CATEGORY_KEYWORDS = {
+    "Integrations": ["bank sync", "bank syncing", "bank feed", "bank feeds", "bank connection",
+                     "bank integration", "connect my bank", "connect bank", "link my bank",
+                     "linked bank", "bank transactions", "bank statement", "bank account sync",
+                     "integration", "integrations","showing unpaid", "shows unpaid", "showing as unpaid", "shows as unpaid",
+                     "still unpaid", "marked unpaid", "marked as unpaid", "status unpaid"],
+}
+
 # Priority follows the brief's guide. Words describe IMPACT, not tone: a customer
 # writing "urgent" is not evidence of urgency on its own, so it is not in these lists.
 #
@@ -115,6 +127,11 @@ FALLBACK_REPLIES = {
     "Account": (
         "Hi, thank you for reaching out about your account. For your security, a member of "
         "our team will verify the details and get back to you."
+    ),
+        "Integrations": (
+        "Hi, thank you for letting us know about the bank sync problem. Our team will check "
+        "the connection with your bank and get back to you. If you see an error message, a "
+        "screenshot would help us."
     ),
     "Feature request": (
         "Hi, thank you for the suggestion. We've shared it with our product team, who review "

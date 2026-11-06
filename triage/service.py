@@ -107,6 +107,12 @@ def triage(subject: str, description: str, customer_name: str | None = None) -> 
             log.info("Raised AI priority %s to Urgent (money/blocked/data-loss signal)",
                      result["priority"])
             result["priority"] = "Urgent"
+        # Guard: a ticket with a decisive phrase (like "bank sync" or "still showing unpaid")
+        # always gets that category, even if the model picked another one.
+        forced = rules.decisive_category(f"{subject}\n{description}")
+        if forced and result["category"] != forced:
+            log.info("Changed AI category %s to %s (decisive phrase)", result["category"], forced)
+            result["category"] = forced
     except Exception as exc:  # any AI or checking problem -> keyword rules
         log.warning("AI triage failed, using rules: %s", exc)
         result = rules.triage_with_rules(subject, description)

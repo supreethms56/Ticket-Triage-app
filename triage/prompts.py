@@ -16,8 +16,11 @@ Return exactly this JSON object and nothing else:
 
 category: exactly one of: {_categories}
 - Billing: charges, refunds, payments, subscriptions, plans, prices, payment links
-- Technical: something in the app is broken, slow, shows an error, or gives wrong output
+- Technical: something in the app is broken, slow, shows an error, or gives wrong output (not bank sync)
 - Account: login, OTP, password, locked account, changing login email, account access
+- Integrations: bank sync, bank feeds, connecting or linking a bank account, bank transactions
+  missing or not importing, a payment that was made but still shows as unpaid, and other
+  connected apps, even when the ticket mentions an error or a payment
 - Feature request: asking for something the app does not do yet (dark mode, new currency, new login option)
 - Other: how-to questions, thanks, feedback, spam, marketing, or anything vague
 
@@ -36,6 +39,9 @@ Examples:
 - "The reports page takes 20 seconds to open" -> Technical, Medium
 - "Can I pay yearly instead of monthly?" -> Billing, Low
 - "How do I add my logo to invoices?" -> Other, Low
+- "Bank sync fails with an error and no transactions have come in since Monday" -> Integrations, High
+- "How do I connect my HDFC bank account?" -> Integrations, Low
+- "I paid the money but the payment is still showing unpaid" -> Integrations, Medium
 - "Please add WhatsApp sharing for invoices" -> Feature request, Low
 - "URGENT!!! where is the export button??" -> Other, Low
 

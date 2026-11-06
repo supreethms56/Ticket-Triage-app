@@ -29,3 +29,10 @@ def test_unknown_category_is_rejected():
     bad = {**VALID, "category": "Payments"}
     with pytest.raises(InvalidTriage):
         parse_ai_reply(json.dumps(bad))
+
+
+
+
+def test_integrations_category_is_accepted():
+    result = parse_ai_reply(json.dumps({**VALID, "category": "integrations"}))
+    assert result["category"] == "Integrations"

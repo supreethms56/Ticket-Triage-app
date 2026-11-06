@@ -29,3 +29,18 @@ def test_ai_priority_raised_when_money_is_at_risk(monkeypatch):
     result = service.triage("Charged twice", "My card was charged two times for the annual plan.")
     assert result["triage_source"] == "ai"
     assert result["priority"] == "Urgent"
+
+
+    
+
+def test_ai_category_changed_when_ticket_is_about_bank_sync(monkeypatch):
+    """The AI said Billing for a paid-but-unpaid ticket; the guard changes it to Integrations."""
+    import json
+    reply = {"category": "Billing", "priority": "Medium",
+             "summary": "Customer paid but the payment still shows unpaid.",
+             "suggested_reply": "Hi, thank you for letting us know. Our team will look into it."}
+    monkeypatch.setattr(ai_client, "get_ai_response", lambda _text: json.dumps(reply))
+
+    result = service.triage("Payment status", "I Paid the Money but the payment is still showing unpaid")
+    assert result["triage_source"] == "ai"
+    assert result["category"] == "Integrations"
